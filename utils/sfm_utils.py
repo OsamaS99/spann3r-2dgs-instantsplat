@@ -246,6 +246,11 @@ def save_intrinsics(sparse_path, focals, org_imgs_shape, imgs_shape, save_focals
     if save_focals:
         np.save(sparse_path / 'non_scaled_focals.npy', focals)
 
+def save_valids(sparse_path, valids):
+
+    np.save(sparse_path / 'valids.npy', valids)
+
+
 
 def save_points3D(sparse_path, colors, pts3d, confs, masks=None, use_masks=True, save_all_pts=False, save_txt_path=None, max_pts_num=150 * 10**10):
     
@@ -265,7 +270,7 @@ def save_points3D(sparse_path, colors, pts3d, confs, masks=None, use_masks=True,
         masks = to_numpy(masks)
         pts = np.concatenate([p[m] for p, m in zip(pts3d, masks)])
         col = np.concatenate([p[m] for p, m in zip(colors, masks)])
-        confs = np.concatenate([p[m] for p, m in zip(confs, masks)])
+        confs = np.concatenate([p[m] for p, m in zip(confs, masks.reshape(masks.shape[0], -1))])
     else:
         pts = np.array(pts3d)
         col = np.array(colors)
@@ -312,6 +317,30 @@ def save_points3D(sparse_path, colors, pts3d, confs, masks=None, use_masks=True,
     
     return pts.shape[0]
 
+# Save images and masks
+def save_images_and_masks(sparse_0_path, n_views, imgs, overlapping_masks, image_files, image_suffix):
+
+    images_path = sparse_0_path / f'imgs_{n_views}'
+    overlapping_masks_path = sparse_0_path / f'overlapping_masks_{n_views}'
+
+    images_path.mkdir(exist_ok=True, parents=True)
+    overlapping_masks_path.mkdir(exist_ok=True, parents=True)
+    if not isinstance(image_suffix, str):
+        image_suffix = image_suffix[0]
+
+    for i, (image, name, overlapping_mask) in enumerate(zip(imgs, image_files, overlapping_masks)):
+        imgname = Path(name).stem
+        image_save_path = images_path / f"{imgname}{image_suffix}"
+        overlapping_mask_save_path = overlapping_masks_path / f"{imgname}{image_suffix}"
+        overlapping_mask_save_path = overlapping_masks_path / f"{imgname}{image_suffix}"
+
+        # Save overlapping masks
+        overlapping_mask = np.repeat(np.expand_dims(overlapping_mask, -1), 3, axis=2) * 255
+        PIL.Image.fromarray(overlapping_mask.astype(np.uint8)).save(overlapping_mask_save_path)
+
+        # Save images
+        rgb_image = cv2.cvtColor(image * 255, cv2.COLOR_BGR2RGB)
+        cv2.imwrite(str(image_save_path), rgb_image)
 
 def save_images(sparse_0_path, n_views, imgs, image_files, image_suffix):
 
