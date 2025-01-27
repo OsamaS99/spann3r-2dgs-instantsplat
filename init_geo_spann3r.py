@@ -25,6 +25,7 @@ from utils.sfm_utils import (
     init_filestructure, 
 )
 from utils.camera_utils import generate_interpolated_path
+from utils.mask_utils import calculate_cumulative_mask
 
 @dataclass
 class ReconstructionConfig:
@@ -279,6 +280,7 @@ class Reconstructor:
         pts3d_concat = np.concatenate(all_pts3d) 
         conf_concat = np.concatenate(all_conf)
         colors_concat = np.concatenate(all_colors)
+        mask = calculate_cumulative_mask(pts3d_concat.reshape(self.config.n_views, predH, predW, 3), all_extrinsics_w2c, K)
 
         # Save results
         # if not self.config.infer_video and test_img_files:
@@ -309,11 +311,11 @@ class Reconstructor:
         
         pts_num = save_points3D(
             self.sparse_0_path,
-            colors_concat,
-            pts3d_concat,
-            conf_concat.reshape(-1, 1),
-            masks=None,
-            use_masks=False,
+            colors_concat.reshape(self.config.n_views, predH, predW, 3),
+            pts3d_concat.reshape(self.config.n_views, predH, predW, 3),
+            conf_concat.reshape(self.config.n_views, predH, predW, 1),
+            masks=mask,
+            use_masks=True,
             save_all_pts=True,
             save_txt_path=self.config.model_path
         )
