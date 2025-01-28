@@ -2,14 +2,21 @@
 export PYTHONPATH=$(pwd):$PYTHONPATH
 
 # Change the absolute path first!
-DATA_ROOT_DIR="<Absolute_Path>/InstantSplat/assets"
+DATA_ROOT_DIR="/home/team13/3dgs/InstantSplat_2gds/assets_test"
 OUTPUT_DIR="output_eval"
 DATASETS=(
     scannetpp
 )
 
 SCENES=(
-    a980334473_00
+484ad681df_06
+ab11145646_00
+484ad681df_07 
+ab11145646_01
+32280ecbca_04  
+6d89a7320d_02
+32280ecbca_05  
+6d89a7320d_03
 )
 
 N_VIEWS=(
@@ -89,8 +96,8 @@ run_on_gpu() {
         --iterations ${gs_train_iter} \
         --optim_pose \
         --depth_ratio 1 \
-        --lambda_dist 1000 \
-        --lambda_normal 0.05 \
+        --lambda_dist 1 \
+        --lambda_normal 0.005 \
         --pp_optimizer \
         > ${MODEL_PATH}/02_train.log 2>&1
     elif [ "$gs_type" = "3DGS" ]; then
