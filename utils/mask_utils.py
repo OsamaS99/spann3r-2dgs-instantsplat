@@ -71,7 +71,7 @@ def calculate_cumulative_mask(pts3d, extrinsics, intrinsics):
             v = (fy * y / z) + cy
             
             # Create validity masks
-            in_bounds = (u >= 0) & (u < W) & (v >= 0) & (v < H)
+            in_bounds = (u >= W * 0.1) & (u < W * 0.9) & (v >= H * 0.1) & (v < H * 0.9)
             valid_projection = valid_z & in_bounds
 
             # Convert coordinates to integer indices (nearest neighbor)
@@ -84,7 +84,7 @@ def calculate_cumulative_mask(pts3d, extrinsics, intrinsics):
                                                       u_idx[valid_projection]]
             
             # Depth consistency check (only on valid projections)
-            depth_match = np.abs(z - sampled_depth) < 2e-1
+            depth_match = np.abs(z - sampled_depth) < 5e-3
             visible_in_j = valid_projection & depth_match
             
             visible_in_prev |= visible_in_j

@@ -68,7 +68,7 @@ def evaluate(args):
             full_dict[scene_dir] = {}
             per_view_dict[scene_dir] = {}
 
-            test_dir = Path(scene_dir) / "test"
+            test_dir = Path(scene_dir) / "train"
 
             for method in os.listdir(test_dir):
                 print("Method:", method)
@@ -83,7 +83,7 @@ def evaluate(args):
                 renders_dir = method_dir / "renders"
                 renders, gts, image_names = readImages(renders_dir, gt_dir)
                 gt_depth_dir = Path(args.source_path) / "depths"
-                gt_depth_files = sorted([f.name for f in gt_depth_dir.glob('test_*_depth.npy')])
+                gt_depth_files = sorted([f.name for f in gt_depth_dir.glob('train_*_depth.npy')])
                 pred_depth_dir = method_dir / "vis"
 
                 ssims = []

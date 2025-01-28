@@ -41,14 +41,15 @@ def get_args_parser():
 def main(args):
     # Example dataset definition
     dataset = Scannetpp(
-        split='test',
+        split='train',
         ROOT="/mnt/hdd/scannetpp/data",
         resolution=224,
-        test_id=['a980334473', 'fb5a96b1a2', 'a24f64f7fb', '25f3b7a318', '3f15a9266d'],
-        num_seq=5,
+        test_id=['ab11145646', '6d89a7320d', '32280ecbca', '484ad681df', '09bced689e'],
+        num_seq=2,
         num_frames=args.num_train,
         full_video=True,
-        kf_every=6
+        kf_every=5,
+        seed=0,
     )
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0)
 
@@ -134,7 +135,7 @@ def main(args):
             test_img_files.append(image_fname)
 
         # Save extrinsics in the test path
-        save_extrinsic(Path(test_path), test_extrinsics, test_img_files, image_suffix=[".JPG", ""])
+        save_extrinsic(Path(test_path), np.linalg.inv(test_extrinsics), test_img_files, image_suffix=[".JPG", ""])
 
         # And similarly, store intrinsics
         test_focals = []
@@ -142,7 +143,6 @@ def main(args):
             K = view['camera_intrinsics'][0].numpy()  # e.g. (3,3)
             fx = K[0, 0]
             test_focals.append(fx)
-
         save_intrinsics(Path(test_path), test_focals, [H, W], [H, W], save_focals=False)
 
         print(f"[{i}] Saved scene: {scene_name} -> train/test in {scene_root}")

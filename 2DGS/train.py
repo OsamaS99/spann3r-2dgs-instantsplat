@@ -154,8 +154,8 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim_value)
         
         # regularization
-        lambda_normal = opt.lambda_normal * 2 if iteration > opt.iterations * 0.45 else 0.0
-        lambda_dist = opt.lambda_dist if iteration > opt.iterations * 0.33 else 0.0
+        lambda_normal = opt.lambda_normal * 2 if iteration > opt.iterations * 0.65 else 0.0
+        lambda_dist = opt.lambda_dist if iteration > opt.iterations * 0.5 else 0.0
 
         rend_dist = render_pkg["rend_dist"]
         rend_normal  = render_pkg['rend_normal']

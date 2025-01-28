@@ -16,7 +16,7 @@ from dust3r.inference import inference
 from dust3r.utils.device import to_numpy
 from dust3r.utils.geometry import inv
 from dust3r.cloud_opt import global_aligner, GlobalAlignerMode
-from utils.sfm_utils import (save_intrinsics, save_extrinsic, save_points3D, save_time, save_images_and_masks,
+from utils.sfm_utils import (save_intrinsics_dust3r, save_extrinsic_dust3r, save_points3D_dust3r, save_time, save_images_and_masks,
                              init_filestructure, get_sorted_image_files, split_train_test, load_images, compute_co_vis_masks)
 from utils.camera_utils import generate_interpolated_path
 
@@ -29,8 +29,6 @@ def main(source_path, model_path, ckpt_path, device, batch_size, image_size, sch
     model = AsymmetricMASt3R.from_pretrained(ckpt_path).to(device)
     image_dir = Path(source_path) / 'images'
     image_files, image_suffix = get_sorted_image_files(image_dir)
-    if isinstance(image_suffix, str):
-        image_suffix = [image_suffix]
     if infer_video:
         train_img_files = image_files
     else:
@@ -112,9 +110,9 @@ def main(source_path, model_path, ckpt_path, device, batch_size, image_size, sch
             indices = np.linspace(0, extrinsics_w2c.shape[0] - 1, n_test, dtype=int)
             pose_test_init = extrinsics_w2c[indices]
 
-        save_extrinsic(sparse_1_path, pose_test_init, test_img_files, image_suffix)
+        save_extrinsic_dust3r(sparse_1_path, pose_test_init, test_img_files, image_suffix)
         test_focals = np.repeat(focals[0], n_test)
-        save_intrinsics(sparse_1_path, test_focals, org_imgs_shape, imgs.shape, save_focals=False)
+        save_intrinsics_dust3r(sparse_1_path, test_focals, org_imgs_shape, imgs.shape, save_focals=False)
     # -----------------------------------------------------------------------------------------
 
     # Save results
@@ -122,10 +120,10 @@ def main(source_path, model_path, ckpt_path, device, batch_size, image_size, sch
     print(f'>> Saving results...')
     end_time = time()
     save_time(model_path, '[1] init_geo', end_time - start_time)
-    save_extrinsic(sparse_0_path, extrinsics_w2c, image_files, image_suffix)
-    save_intrinsics(sparse_0_path, focals, org_imgs_shape, imgs.shape, save_focals=True)
-    pts_num = save_points3D(sparse_0_path, imgs, pts3d, confs.reshape(pts3d.shape[0], -1), overlapping_masks, use_masks=co_vis_dsp, save_all_pts=True, save_txt_path=model_path)
-    save_images_and_masks(sparse_0_path, n_views, imgs, overlapping_masks, image_files, image_suffix)
+    save_extrinsic_dust3r(sparse_0_path, extrinsics_w2c, image_files, image_suffix)
+    save_intrinsics_dust3r(sparse_0_path, focals, org_imgs_shape, imgs.shape, save_focals=True)
+    pts_num = save_points3D_dust3r(sparse_0_path, imgs, pts3d, confs.reshape(pts3d.shape[0], -1), overlapping_masks, use_masks=co_vis_dsp, save_all_pts=True, save_txt_path=model_path)
+    save_images_and_masks(sparse_0_path, n_views, imgs, overlapping_masks, image_files, image_suffix, source="dust3r")
     print(f'[INFO] MASt3R Reconstruction is successfully converted to COLMAP files in: {str(sparse_0_path)}')
     print(f'[INFO] Number of points: {pts3d.reshape(-1, 3).shape[0]}')    
     print(f'[INFO] Number of points after downsampling: {pts_num}')
@@ -135,7 +133,7 @@ if __name__ == "__main__":
     parser.add_argument('--source_path', '-s', type=str, required=True, help='Directory containing images')
     parser.add_argument('--model_path', '-m', type=str, required=True, help='Directory to save the results')
     parser.add_argument('--ckpt_path', type=str,
-        default='./mast3r/checkpoints/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric.pth', help='Path to the model checkpoint')
+        default='./checkpoints/DUSt3R_ViTLarge_BaseDecoder_512_dpt.pth', help='Path to the model checkpoint')
     parser.add_argument('--device', type=str, default='cuda', help='Device to use for inference')
     parser.add_argument('--batch_size', type=int, default=1, help='Batch size for processing images')
     parser.add_argument('--image_size', type=int, default=512, help='Size to resize images')

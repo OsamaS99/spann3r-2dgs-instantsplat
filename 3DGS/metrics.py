@@ -44,7 +44,7 @@ def evaluate(args):
             full_dict[scene_dir] = {}
             per_view_dict[scene_dir] = {}
 
-            test_dir = Path(scene_dir) / "test"
+            test_dir = Path(scene_dir) / "train"
 
             for method in os.listdir(test_dir):
                 print("Method:", method)
@@ -83,39 +83,6 @@ def evaluate(args):
                                                             "PSNR": {name: psnr for psnr, name in zip(torch.tensor(psnrs).tolist(), image_names)},
                                                             "LPIPS": {name: lp for lp, name in zip(torch.tensor(lpipss).tolist(), image_names)}})
                 
-                # ------------------------------ (2) pose evaluation ------------------------------ #
-                # load GT Colmap poses
-                pose_dir = Path(scene_dir) / "pose"
-                pose_path = pose_dir / method
-                pose_optimized = np.load(pose_path / f'pose_optimized.npy')
-                pose_colmap = read_colmap_gt_pose(args.source_path)
-                gt_train_pose, _ = split_train_test(pose_colmap, llffhold=8, n_views=args.n_views, verbose=False)
-
-                # start to align
-                pose_optimized = torch.from_numpy(pose_optimized)
-                poses_gt = torch.from_numpy(np.array(gt_train_pose))
-                # align scale first
-                trans_gt_align, trans_est_align, _ = align_pose(poses_gt[:, :3, -1].numpy(), pose_optimized[:, :3, -1].numpy())
-                poses_gt[:, :3, -1] = torch.from_numpy(trans_gt_align)
-                pose_optimized[:, :3, -1] = torch.from_numpy(trans_est_align)
-
-                c2ws_est_aligned = align_ate_c2b_use_a2b(pose_optimized, poses_gt)
-                ate = compute_ATE(poses_gt.cpu().numpy(), c2ws_est_aligned.cpu().numpy())
-                rpe_trans, rpe_rot = compute_rpe(poses_gt.cpu().numpy(), c2ws_est_aligned.cpu().numpy())
-                print(f"  RPE_t: {rpe_trans*100:>12.7f}")
-                print(f"  RPE_r: {rpe_rot * 180 / np.pi:>12.7f}")
-                print(f"  ATE  : {ate:>12.7f}")
-                print("")
-                full_dict[scene_dir][method].update({"RPE_t": rpe_trans*100,
-                                                    "RPE_r": rpe_rot * 180 / np.pi,
-                                                    "ATE": ate})
-                plot_pose(poses_gt, c2ws_est_aligned, pose_path, args)
-                with open(pose_path / f"pose_eval.txt", 'w') as f:
-                    f.write("RPE_t: {:.04f}, RPE_r: {:.04f}, ATE: {:.04f}".format(
-                        rpe_trans*100,
-                        rpe_rot * 180 / np.pi,
-                        ate))
-
             with open(scene_dir + "/results.json", 'w') as fp:
                 json.dump(full_dict[scene_dir], fp, indent=True)
             with open(scene_dir + "/per_view.json", 'w') as fp:

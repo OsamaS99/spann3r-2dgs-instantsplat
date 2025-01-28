@@ -13,7 +13,6 @@ from torch.utils.data import DataLoader
 from spann3r.model import Spann3R
 from spann3r.datasets import Demo
 from dust3r.post_process import estimate_focal_knowing_depth
-from dust3r.utils.geometry import inv
 
 # Project utilities
 from utils.sfm_utils import (
@@ -22,6 +21,7 @@ from utils.sfm_utils import (
     save_points3D, 
     save_time,
     save_images, 
+    save_images_and_masks,
     init_filestructure, 
 )
 from utils.camera_utils import generate_interpolated_path
@@ -82,7 +82,7 @@ class Reconstructor:
             ROOT=os.path.join(self.config.source_path, 'images'),
             resolution=self.config.image_size,
             full_video=True,
-            kf_every=1
+            kf_every=1,
         )
         dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0)
         batch = process_batch(next(iter(dataloader)), self.config.device)
@@ -254,7 +254,7 @@ class Reconstructor:
 
         focal_est, K = self._estimate_focal(preds[0]['pts3d'], preds[0]['conf'])
 
-        all_pts3d, all_conf, all_extrinsics_w2c = [], [], []
+        all_pts3d, all_conf, all_extrinsics_c2w = [], [], []
         all_colors, all_imgs = [], []
         _, predH, predW, _ = preds[0]['pts3d'].shape 
 
@@ -264,28 +264,28 @@ class Reconstructor:
                         else preds[j]['pts3d_in_other_view'])
             pts3d_pred = pts3d_pred.detach().cpu().numpy()[0]  
             conf_pred = preds[j]['conf'][0].detach().cpu().numpy()
-            extrinsic_w2c = self._solve_pnp(pts3d_pred, K, conf_pred)
+            extrinsic_c2w = self._solve_pnp(pts3d_pred, K, conf_pred)
 
             # Store processed data
             img = view['original_img'][0].mul(255).cpu().numpy().transpose(1, 2, 0)
             all_pts3d.append(pts3d_pred.reshape(-1, 3))
             all_conf.append(conf_pred.reshape(-1))
-            all_extrinsics_w2c.append(extrinsic_w2c)
+            all_extrinsics_c2w.append(extrinsic_c2w)
             all_imgs.append(img)
             all_colors.append(img.reshape(-1, 3))
 
         # Stack and concatenate results
-        all_extrinsics_w2c = np.stack(all_extrinsics_w2c)
+        all_extrinsics_c2w = np.stack(all_extrinsics_c2w)
         all_imgs = np.array(all_imgs)
         pts3d_concat = np.concatenate(all_pts3d) 
         conf_concat = np.concatenate(all_conf)
         colors_concat = np.concatenate(all_colors)
-        mask = calculate_cumulative_mask(pts3d_concat.reshape(self.config.n_views, predH, predW, 3), all_extrinsics_w2c, K)
+        mask = calculate_cumulative_mask(pts3d_concat.reshape(self.config.n_views, predH, predW, 3), all_extrinsics_c2w, K)
 
         # Save results
         # if not self.config.infer_video and test_img_files:
         #     self._save_test_data(
-        #         all_extrinsics_w2c,
+        #         all_extrinsics_c2w,
         #         test_img_files,
         #         focal_est,
         #         predH,
@@ -304,7 +304,7 @@ class Reconstructor:
         )
         save_extrinsic(
             self.sparse_0_path,
-            all_extrinsics_w2c,
+            np.linalg.inv(all_extrinsics_c2w),
             train_img_files,
             image_suffix
         )
@@ -319,7 +319,9 @@ class Reconstructor:
             save_all_pts=True,
             save_txt_path=self.config.model_path
         )
-        
+
+        save_images_and_masks(self.sparse_0_path, self.config.n_views, all_imgs, mask, train_img_files, image_suffix, source="spann3r")
+
         save_images(
             self.sparse_0_path,
             len(train_img_files),
@@ -339,7 +341,7 @@ class Reconstructor:
 
     def _save_test_data(
         self,
-        all_extrinsics_w2c: np.ndarray,
+        all_extrinsics_c2w: np.ndarray,
         test_img_files: List[Path],
         focal_est: float,
         predH: int,
@@ -347,7 +349,7 @@ class Reconstructor:
         image_suffix: str
     ) -> None:
         """Save test data with pose interpolation if needed."""
-        n_train = len(all_extrinsics_w2c)
+        n_train = len(all_extrinsics_c2w)
         n_test = len(test_img_files)
 
         if n_train < n_test:
@@ -357,14 +359,14 @@ class Reconstructor:
             
             for i in range(n_train - 1):
                 tmp_inter_pose = generate_interpolated_path(
-                    poses=all_extrinsics_w2c[i:i+2],
+                    poses=all_extrinsics_c2w[i:i+2],
                     n_interp=n_interp
                 )
                 all_inter_pose.append(tmp_inter_pose)
             
             all_inter_pose = np.concatenate([
                 np.concatenate(all_inter_pose),
-                all_extrinsics_w2c[-1][:3, :].reshape(1, 3, 4)
+                all_extrinsics_c2w[-1][:3, :].reshape(1, 3, 4)
             ])
             
             indices = np.linspace(0, len(all_inter_pose) - 1, n_test, dtype=int)
@@ -374,7 +376,7 @@ class Reconstructor:
             ])
         else:
             indices = np.linspace(0, n_train - 1, n_test, dtype=int)
-            pose_test = all_extrinsics_w2c[indices]
+            pose_test = all_extrinsics_c2w[indices]
 
         # Save test data
         save_extrinsic(self.sparse_1_path, pose_test, test_img_files, image_suffix)
