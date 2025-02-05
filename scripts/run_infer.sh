@@ -2,27 +2,28 @@
 export PYTHONPATH=$(pwd):$PYTHONPATH
 
 # Change the absolute path first!
-DATA_ROOT_DIR="<Absolute_Path>/InstantSplat/assets"
+DATA_ROOT_DIR="/home/team13/3dgs/InstantSplat_2gds/assets"
 OUTPUT_DIR="output_infer"
 DATASETS=(
-    scannetpp
+    examples
 )
 
 SCENES=(
-    a980334473_00
+    Truck
 )
 
 N_VIEWS=(
-    3
+    15
 )
 
 gs_train_iter=(
-  1000
+  5000
 )
 
 # Can be 3DGS and / or 2DGS
 gs_type=(
   3DGS
+  2DGS
 )
 
 # Can be spann3r and / or dust3r
@@ -77,6 +78,8 @@ run_on_gpu() {
     --infer_video \
     > ${MODEL_PATH}/01_init_geo.log 2>&1
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Co-visible Global Geometry Initialization completed. Log saved in ${MODEL_PATH}/01_init_geo.log"
+    
+    sleep 10
 
     # (2) Train: jointly optimize pose
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting training..."
@@ -89,8 +92,8 @@ run_on_gpu() {
         --iterations ${gs_train_iter} \
         --optim_pose \
         --depth_ratio 0 \
-        --lambda_dist 50 \
-        --lambda_normal 0 \
+        --lambda_dist 100 \
+        --lambda_normal 0.005 \
         --pp_optimizer \
         > ${MODEL_PATH}/02_train.log 2>&1
     elif [ "$gs_type" = "3DGS" ]; then
@@ -100,7 +103,6 @@ run_on_gpu() {
         -r 1 \
         --n_views ${N_VIEW} \
         --iterations ${gs_train_iter} \
-        --pp_optimizer \
         --optim_pose \
         > ${MODEL_PATH}/02_train.log 2>&1
     else
@@ -108,6 +110,8 @@ run_on_gpu() {
         exit 1
     fi
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Training completed. Log saved in ${MODEL_PATH}/02_train.log"
+    
+    sleep 10
 
     # (3) Render-Training_View
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting rendering training views..."
@@ -144,7 +148,7 @@ run_on_gpu() {
 }
 
 # Main loop
-total_tasks=$((${#DATASETS[@]} * ${#SCENES[@]} * ${#N_VIEWS[@]} * ${#gs_train_iter[@]}))
+total_tasks=$((${#DATASETS[@]} * ${#SCENES[@]} * ${#N_VIEWS[@]} * ${#gs_train_iter[@]} * ${#gs_type[@]} * ${#pc_initializer[@]}))
 current_task=0
 
 for DATASET in "${DATASETS[@]}"; do
@@ -161,16 +165,16 @@ for DATASET in "${DATASETS[@]}"; do
 
                         # If no GPU is available, wait for a while and retry
                         while [ -z "$GPU_ID" ]; do
-                            echo "[$(date '+%Y-%m-%d %H:%M:%S')] No GPU available, waiting 60 seconds before retrying..."
-                            sleep 60
+                            echo "[$(date '+%Y-%m-%d %H:%M:%S')] No GPU available, waiting 20 seconds before retrying..."
+                            sleep 20
                             GPU_ID=$(get_available_gpu)
                         done
 
                         # Run the task in the background
-                        (run_on_gpu $GPU_ID "$DATASET" "$SCENE" "$N_VIEW" "$gs_train_iter" "$gs_type" "$pc_initializer") &
+                        (run_on_gpu $GPU_ID "$DATASET" "$SCENE" "$N_VIEW" "$gs_train_iter" "$gs_type" "$pc_initializer")
 
                         # Wait for 20 seconds before trying to start the next task
-                        sleep 10
+                        sleep 20
                     done
                 done
             done

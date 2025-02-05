@@ -73,7 +73,7 @@ def load_and_prepare_confidence(confidence_path, device='cuda', scale=(0.1, 1.0)
     """
     # Load and normalize
     confidence_np = np.load(confidence_path)
-    confidence_tensor = torch.from_numpy(confidence_np).float().to(device) - 1.0
+    confidence_tensor = torch.from_numpy(confidence_np).float().to(device)
     normalized_confidence = torch.sigmoid(confidence_tensor)
 
     # Invert confidence and scale to desired range

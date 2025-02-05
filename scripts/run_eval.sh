@@ -9,33 +9,34 @@ DATASETS=(
 )
 
 SCENES=(
-484ad681df_06
-ab11145646_00
-484ad681df_07 
-ab11145646_01
-32280ecbca_04  
-6d89a7320d_02
-32280ecbca_05  
-6d89a7320d_03
+    3db0a1c8f3_02
+    3db0a1c8f3_03
+    484ad681df_06
+    484ad681df_07
+    7079b59642_08
+    7079b59642_09
+    ab11145646_00
+    ab11145646_01
+    f5401524e5_04
+    f5401524e5_05
 )
 
 N_VIEWS=(
-    6
+    3
 )
 
 gs_train_iter=(
-  5000
+  2500
 )
 
 # Can be 3DGS and / or 2DGS
 gs_type=(
-  3DGS
+  2DGS
 )
 
 # Can be spann3r and / or dust3r
 pc_initializer=(
   spann3r
-  dust3r
 )
 
 # Function to get the id of an available GPU
@@ -96,7 +97,7 @@ run_on_gpu() {
         --iterations ${gs_train_iter} \
         --optim_pose \
         --depth_ratio 1 \
-        --lambda_dist 1 \
+        --lambda_dist 100 \
         --lambda_normal 0.005 \
         --pp_optimizer \
         > ${MODEL_PATH}/02_train.log 2>&1

@@ -44,11 +44,11 @@ def main(args):
         split='train',
         ROOT="/mnt/hdd/scannetpp/data",
         resolution=224,
-        test_id=['ab11145646', '6d89a7320d', '32280ecbca', '484ad681df', '09bced689e'],
+        test_id=['ab11145646', '3db0a1c8f3', 'f5401524e5', '484ad681df', "7079b59642"],
         num_seq=2,
         num_frames=args.num_train,
         full_video=True,
-        kf_every=5,
+        kf_every=4,
         seed=0,
     )
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0)

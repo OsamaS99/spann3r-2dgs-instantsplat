@@ -133,10 +133,10 @@ if __name__ == "__main__":
     parser.add_argument('--source_path', '-s', type=str, required=True, help='Directory containing images')
     parser.add_argument('--model_path', '-m', type=str, required=True, help='Directory to save the results')
     parser.add_argument('--ckpt_path', type=str,
-        default='./checkpoints/DUSt3R_ViTLarge_BaseDecoder_512_dpt.pth', help='Path to the model checkpoint')
+        default='./checkpoints/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric.pth', help='Path to the model checkpoint')
     parser.add_argument('--device', type=str, default='cuda', help='Device to use for inference')
     parser.add_argument('--batch_size', type=int, default=1, help='Batch size for processing images')
-    parser.add_argument('--image_size', type=int, default=512, help='Size to resize images')
+    parser.add_argument('--image_size', type=int, default=224, help='Size to resize images')
     parser.add_argument('--schedule', type=str, default='cosine', help='Learning rate schedule')
     parser.add_argument('--lr', type=float, default=0.01, help='Learning rate')
     parser.add_argument('--niter', type=int, default=300, help='Number of iterations')
